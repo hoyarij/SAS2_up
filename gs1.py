@@ -552,7 +552,7 @@ class GS(QMainWindow):
 
         if money > self.changez:    money = self.changez - self.changez % 1000
         if money < 1000:
-            print("배팅할 금액이 없습니다.")
+            print("배팅할 잔액이 없습니다.")
             time.sleep(1)
             return True
 
