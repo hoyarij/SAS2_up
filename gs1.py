@@ -4,18 +4,15 @@ import logging
 import os
 import random
 import shutil
-import subprocess
 import threading
 import time
 import timeit
 from logging import handlers
 
 import chromedriver_autoinstaller as ca
-import requests
 import urllib3
 from PyQt5.QtCore import QThread, QWaitCondition, QMutex, pyqtSignal
 from PyQt5.QtWidgets import QMainWindow
-from requests.adapters import HTTPAdapter
 from selenium.common import exceptions
 from selenium.webdriver.chrome import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -77,7 +74,7 @@ class GS(QMainWindow):
     def __init__(self, parent, setting_path):
         super().__init__(parent)
         self.parent = parent
-        self._url, self._id, self._id2, self._pw = '', '', '', ''
+        self._url1, self._url2, self._id, self._id2, self._pw = '', '', '', '', ''
         self._config = configparser.ConfigParser()
         self._config.read(setting_path, encoding="utf8")
         self._check_config()
@@ -122,6 +119,8 @@ class GS(QMainWindow):
 
         self.last_update = 0.0
         self.cntnum, self.delaycnt, self.beforelimit, self.logtime, self.changez = 0, 0, 0, 0, 0
+        # self.tnum, self.tnum1 = [0.11, 0.16], [0.08, 0.11]
+        self.tnum, self.tnum1 = [0.15, 0.25], [0.11, 0.19]
         self.nobetcnt, self.overcnt = [], []
         self.lock, self.onestart, self.beforelimitfirst = False, True, True
 
@@ -180,15 +179,16 @@ class GS(QMainWindow):
         pass
 
     def _login(self):
-        print(self._url)
-        if 'COIN' in self._url:
-            self.driver.get("https://www.38qqs.com/")
+        print(self._url1)
+        self.driver.get(self._url2)
+        if 'COIN' in self._url1:
+            # self.driver.get("https://www.38qqs.com/")
             self._login_55qwe()
-        elif '007' in self._url:
-            self.driver.get("http://vvip8888.com")
+        elif '007' in self._url1:
+            # self.driver.get("http://vvip8888.com")
             self._login_vvip()
-        elif 'THEON' in self._url:
-            self.driver.get("http://www.vkvk11.com")
+        elif 'THEON' in self._url1:
+            # self.driver.get("http://www.vkvk11.com")
             self._login_vkvk()
 
     def _idchk(self):
@@ -223,12 +223,12 @@ class GS(QMainWindow):
         # self.driver.find_element_by_css_selector('#sagame').click()     # 단일요소 셀렉터
 
         # 멀티요소 셀렉터
-        if 'COIN' in self._url:
+        if 'COIN' in self._url1:
             # self.driver.find_elements_by_css_selector('.snip1554')[2].click()
             self.driver.find_elements(By.CSS_SELECTOR, '.snip1554')[2].click()
-        elif '007' in self._url:
+        elif '007' in self._url1:
             self.driver.find_elements(By.CSS_SELECTOR, '.btn.gamestart')[5].find_element(By.CSS_SELECTOR, "i").click()
-        elif 'THEON' in self._url:
+        elif 'THEON' in self._url1:
             self.driver.find_elements(By.CSS_SELECTOR, '.card_org')[1].click()
 
         window_handle = self.driver.window_handles.copy()
@@ -301,8 +301,17 @@ class GS(QMainWindow):
         time.sleep(random.uniform(0.5, 1.0))
 
         try:
-            self.driver.find_element(By.CSS_SELECTOR, "input.close1").click()
-            # self.driver.find_element_by_css_selector("input.close2").click()
+            if self.driver.find_element_by_xpath("//*[@id='hd_pops_1']/a/img"):
+                self.driver.find_element_by_xpath("//*[@id='hd_pops_1']/a/img").click()
+                time.sleep(random.uniform(0.25, 0.5))
+            if self.driver.find_element_by_xpath("//*[@id='hd_pops_2']/a/img"):
+                self.driver.find_element_by_xpath("//*[@id='hd_pops_2']/a/img").click()
+                time.sleep(random.uniform(0.25, 0.5))
+            if self.driver.find_elements_by_css_selector("input.close1"):
+                self.driver.find_elements_by_css_selector("input.close1")[1].click()
+                time.sleep(random.uniform(0.25, 0.5))
+                self.driver.find_elements_by_css_selector("input.close1")[0].click()
+                time.sleep(random.uniform(0.25, 0.5))
         except:
             pass
 
@@ -406,14 +415,15 @@ class GS(QMainWindow):
     def betting(self, table: int, position: str, money: int, game: str, ctmoney: int, len1: int):
         self.delaycnt += 1
         start = timeit.default_timer()
-        num = [0.06, 0.15] if self.logtime < 0.3 else [0.04, 0.08]
+        # tdelay = self.tnum if self.logtime < 0.4 else self.tnum1
+        tdelay = self.tnum if len1 < 6 else self.tnum1
+
         if len1 < 4 and self.onestart:
-            self.parent.change = self.change(num)
+            self.parent.change = self.change(tdelay)
             self.logger8.info(f"-- check0 : [%.1f초 self.betting : {table}" % (timeit.default_timer() - start))
             start = timeit.default_timer()
             self.onestart = False
 
-        # num = [0.05, 0.1] if self.delaycnt >= 2 else [0.04, 0.07] if self.delaycnt >= 4 else [0.05, 0.15]
         """
         베팅 함수
         :param table: 테이블 번호 ex) 831, 832
@@ -423,30 +433,28 @@ class GS(QMainWindow):
         :return: 성공시 True 실패시 False or Exception
         """
         table_index = self.driver.execute_script(
-        f"return GameLayerManager.Instance.sceneLayer.$children[0].tableList.$children.findIndex(x => x._host._hostID == {table})")
+            f"return GameLayerManager.Instance.sceneLayer.$children[0].tableList.$children.findIndex(x => x._host._hostID == {table})"
+        )
         if table_index < 0:
             self.logger9.info("텔레그램 전송")
             raise Exception("테이블을 찾을 수 없습니다.")
 
-        time.sleep(random.uniform(num[0], num[1]))
+        time.sleep(random.uniform(tdelay[0], tdelay[1]))
         self.logger8.info(f"-- check1 : [%.1f초 table : {table}" % (timeit.default_timer() - start))
-        self.logtime = timeit.default_timer() - start
+        # self.logtime = timeit.default_timer() - start
         start = timeit.default_timer()
         self.logger6.info(f"배팅 테이블 번호: {table_index + 1}")
 
-        if table_index < 12:
-            self.driver.execute_script("scrollBy(0,-600);")
-        else:
+        self.driver.execute_script("scrollBy(0,-600);") if table_index < 12 else \
             self.driver.execute_script("window.scrollTo(0,document.body.scrollHeight)")
 
-        time.sleep(random.uniform(num[0], num[1]))
+        time.sleep(random.uniform(tdelay[0], tdelay[1]))
         self.logger8.info("-- check2 : [%.1f초" % (timeit.default_timer() - start))
         start = timeit.default_timer()
 
         re = True
-        ovnum = 7
+        ovnum, cnt = 7, 0
         errtxt = "현재 배팅 불가 테이블입니다."
-        cnt = 0
         if self.nobetcnt:  # 배팅 안되는 카운트 설정
             w, c = [i for i, v in enumerate(self.nobetcnt) if table == v['ta']], \
                    [v['cnt'] for i, v in enumerate(self.nobetcnt) if table == v['ta']]
@@ -466,7 +474,7 @@ class GS(QMainWindow):
                         # 12초 체크
                         if self.overcnt[where1]['time'] + datetime.timedelta(seconds=12) < datetime.datetime.now():
                             if self.enablebet(table_index):  # 테이블 배팅상테 체크
-                                time.sleep(random.uniform(num[0], num[1]))
+                                time.sleep(random.uniform(tdelay[0], tdelay[1]))
                                 if not self.check_available_bet(table_index):  # 여전히 배팅불가면 시간 다시 넣음
                                     self.logger6.info(f"{errtxt} 12 초 간격 추가2")
                                     self.logger7.info(f"[{table} {errtxt} 12 초 간격 추가2")
@@ -494,7 +502,7 @@ class GS(QMainWindow):
 
             else:  # 10번 아래일때
                 if self.enablebet(table_index):  # 테이블 배팅상테 체크
-                    time.sleep(random.uniform(num[0], num[1]))
+                    time.sleep(random.uniform(tdelay[0], tdelay[1]))
                     if not self.check_available_bet(table_index):   # 테이블 배팅 실패시
                         if cnt == 0:
                             self.logger6.info(f"{errtxt} 처음")
@@ -522,7 +530,7 @@ class GS(QMainWindow):
                     re = False
         else:  # 값이 없을 때 배팅 실패하면 추가
             if self.enablebet(table_index):  # 테이블 배팅상테 체크
-                time.sleep(random.uniform(num[0], num[1]))
+                time.sleep(random.uniform(tdelay[0], tdelay[1]))
                 if not self.check_available_bet(table_index):   # 테이블 배팅 실패시
                     self.logger6.info(f"{errtxt} 처음")
                     self.logger7.info(f"[{table} {errtxt} 처음 값이 아예 없음")
@@ -536,10 +544,12 @@ class GS(QMainWindow):
 
         # print(f'배팅가능여부 : {tablebet}')
 
-        time.sleep(random.uniform(num[0], num[1]))
+        time.sleep(random.uniform(tdelay[0], tdelay[1]))
         self.logger8.info(f"-- check3 : [%.1f초, cntover : {cnt}" % (timeit.default_timer() - start)) if ovnum < cnt \
             else self.logger8.info("-- check3 : [%.1f초" % (timeit.default_timer() - start))
         if not re: return re
+
+        start = timeit.default_timer()
 
         value = money
         n = 4 if money > 5000000 else 3 if money > 2000000 else 2 if money > 350000 else 1 if money > 50000 else 0
@@ -552,16 +562,15 @@ class GS(QMainWindow):
 
         if money > self.changez:    money = self.changez - self.changez % 1000
         if money < 1000:
-            print("배팅할 잔액이 없습니다.")
-            time.sleep(1)
+            time.sleep(random.uniform(0.8, 1.2))
+            self.logger8.info("배팅할 잔액이 없습니다.-- [%.1f초" % (timeit.default_timer() - start))
             return True
 
-        start = timeit.default_timer()
         if self.check_already_bet(table_index):
             self.logger6.info("이미 배팅한 테이블입니다.")
             return False
 
-        time.sleep(random.uniform(num[0], num[1]))
+        time.sleep(random.uniform(tdelay[0], tdelay[1]))
         self.logger8.info("-- check4 : [%.1f초" % (timeit.default_timer() - start))
         start = timeit.default_timer()
         position_dict = {"P": 0, "T": 1, "B": 2, "PP": 3, "BP": 4, "L": 5}
@@ -606,11 +615,15 @@ class GS(QMainWindow):
             # self.set_chip_group(tuple((coins.index(x) for x in coin_group if x in coins)))
             for index, coin in enumerate(coin_group):
                 if result.get(coin, False):
+                    self.logger9.info(f'coin : {coin}')
                     self.set_chip(index)
+                    # time.sleep(random.uniform(num[0], num[1]))
                     for _ in range(result[coin]):
                         self.set_money(table_index, position_index)
+                        self.logger9.info(f'resultcoin : {coin}')
+                        # time.sleep(random.uniform(num[0], num[1]))
 
-        time.sleep(random.uniform(num[0], num[1]))
+        # time.sleep(random.uniform(num[0], num[1]))
         self.logger8.info("-- check6 : [%.1f초" % (timeit.default_timer() - start))
         start = timeit.default_timer()
         data = self.driver.execute_script(
@@ -619,7 +632,7 @@ class GS(QMainWindow):
             "return true "
             "} catch(e) { return false }")
         # m = [0.2, 0.4] if self.delaycnt >= 2 else [0.1, 0.3] if self.delaycnt >= 4 else [0.3, 0.5]
-        m = [0.3, 0.5] if self.logtime < 0.3 else [0.15, 0.3]
+        m = [0.25, 0.35] if self.logtime < 0.4 else [0.15, 0.25]
         time.sleep(random.uniform(m[0], m[1]))
         self.logger8.info("-- check7 : [%.1f초" % (timeit.default_timer() - start))
         start = timeit.default_timer()
@@ -628,7 +641,8 @@ class GS(QMainWindow):
                 self.logger6.info(f'att ctmomney : {ctmoney}')
                 re = self.driver.execute_script(
                     "try { "
-                    "GameLayerManager.Instance.upperLayer.$children.filter(x => x.hasOwnProperty('btnConfirm'))[0]._parent.doConfirmBet(); "
+                    "GameLayerManager.Instance.upperLayer.$children.filter(x => x.hasOwnProperty('btnConfirm'))[0]._parent.doConfirmBet();"
+                    "await new Promise(resolve => setTimeout(resolve, 200));"
                     "GameLayerManager.Instance.upperLayer.$children.filter(x => x.hasOwnProperty('btnConfirm'))[0].doClose();"
                     "return true "
                     "} catch(e) { return false }")
@@ -677,10 +691,11 @@ class GS(QMainWindow):
 
     def click1(self):
         self.driver.execute_script("user.updateBalance();"
-                                   "GameLayerManager.Instance.sceneLayer.$children[0].lobbyFooter.btnRefreshBalance.startProcessing(1e3);")
-        time.sleep(random.uniform(0.1, 0.15))
-        self.driver.execute_script("GameLayerManager.Instance.sceneLayer.$children[0].counter = 0")
-        time.sleep(random.uniform(0.1, 0.15))
+            "await new Promise(resolve => setTimeout(resolve, 200));"
+            "GameLayerManager.Instance.sceneLayer.$children[0].lobbyFooter.btnRefreshBalance.startProcessing(1e3);"
+            "await new Promise(resolve => setTimeout(resolve, 200));"
+            "GameLayerManager.Instance.sceneLayer.$children[0].counter = 0")
+        time.sleep(random.uniform(self.tnum[0], self.tnum[1]))
         return "Click to balance"
         # self.logger7.info('발란스 클릭')
         # print('발란스 클릭')
@@ -694,8 +709,8 @@ class GS(QMainWindow):
         self.changez = changez
         return changez
 
-    def setup(self, url, _id, _id2, _pw):
-        self._url, self._id, self._id2, self._pw = url, _id, _id2, _pw
+    def setup(self, url1, url2, _id, _id2, _pw):
+        self._url1, self._url2, self._id, self._id2, self._pw = url1, url2, _id, _id2, _pw
         self._login()
         self._wait_sa_load()
         self._switch_multi_bet()
@@ -703,7 +718,7 @@ class GS(QMainWindow):
         # self.parent.sagameNotstart = False
         self.last_update = time.time()
         time.sleep(random.uniform(1, 2))
-        self.video_reload_interval(2)
+        # self.video_reload_interval(2)
         if self.beforelimitfirst:
             self.change_bet_limit(0)
             self.beforelimitfirst = False

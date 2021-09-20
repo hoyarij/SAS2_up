@@ -18,7 +18,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>60</y>
+      <y>95</y>
       <width>61</width>
       <height>45</height>
      </rect>
@@ -36,7 +36,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>110</y>
+      <y>145</y>
       <width>71</width>
       <height>21</height>
      </rect>
@@ -54,7 +54,7 @@
     <property name="geometry">
      <rect>
       <x>110</x>
-      <y>65</y>
+      <y>100</y>
       <width>131</width>
       <height>30</height>
      </rect>
@@ -75,7 +75,7 @@
     <property name="geometry">
      <rect>
       <x>110</x>
-      <y>105</y>
+      <y>140</y>
       <width>131</width>
       <height>30</height>
      </rect>
@@ -161,7 +161,7 @@
      <string>사이트주소</string>
     </property>
    </widget>
-   <widget class="QComboBox" name="url">
+   <widget class="QComboBox" name="url1">
     <property name="geometry">
      <rect>
       <x>110</x>
@@ -193,6 +193,27 @@
       <string>THEON CASINO</string>
      </property>
     </item>
+   </widget>
+   <widget class="QLineEdit" name="url2">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>50</y>
+      <width>231</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>15</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+    <property name="readOnly">
+     <bool>false</bool>
+    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

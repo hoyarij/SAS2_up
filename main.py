@@ -34,8 +34,6 @@ import pymysql.cursors
 from PyQt5 import QtGui, QtWidgets, uic
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt5.QtWidgets import QMainWindow, QApplication, QTableWidgetItem, QAbstractItemView
-from selenium.webdriver import ActionChains
-from selenium.webdriver.common.keys import Keys
 
 from gs1 import GS
 
@@ -47,25 +45,27 @@ class Info(QMainWindow, form_class):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self._url, self._id, self._id2, self._pw = "", "", "", ""
+        self._url1, self._url2, self._id, self._id2, self._pw = "", "", "", "", ""
 
         if os.path.isfile("./info.txt"):
             with open('./info.txt', 'r') as file:
                 try:
                     s = file.read().split(',')
-                    self.id.setText(s[0])
-                    self.id_2.setText(s[1])
-                    self.pw.setText(s[2])
+                    self.url2.setText(s[0])
+                    self.id.setText(s[1])
+                    self.id_2.setText(s[2])
+                    self.pw.setText(s[3])
                 except:
                     pass
         self.run_btn.clicked.connect(self.run_btn_clicked)
 
     def run_btn_clicked(self):
-        _url = self.url.currentText()
+        _url1 = self.url1.currentText()
+        _url2 = self.url2.text()
         _id = self.id.text()
         _id2 = self.id_2.text()
         _pw = self.pw.text()
-        data = f"{_id},{_id2},{_pw}"
+        data = f"{_url2},{_id},{_id2},{_pw}"
         with open('./info.txt', 'w') as file:
             file.write(data)
 
@@ -75,7 +75,7 @@ class Info(QMainWindow, form_class):
         # login.hide()
         # window.show()
         # print('change')
-        window.run1(_url, _id, _id2, _pw)
+        window.run1(_url1, _url2, _id, _id2, _pw)
 
 
 class Runner(QMainWindow, form_class2):
@@ -102,7 +102,7 @@ class Runner(QMainWindow, form_class2):
         self.deleteLater()
 
     def disp(self):
-        if self.disponly and self.totnum:
+        if self.disponly and self.totnum and self.disponly[10] != "":
             self.datadisplay(self.disponly)
         if not self.notStart:
             self.thread1.notstart = False
@@ -138,13 +138,13 @@ class Runner(QMainWindow, form_class2):
         self.csHistory.resizeRowsToContents()
         self.csHistory.setEditTriggers(QAbstractItemView.NoEditTriggers)  # edit 금지 모드
 
-    def run1(self, _url, _id, _id2, _pw):
+    def run1(self, _url1, _url2, _id, _id2, _pw):
         try:
-            self.th1 = Thread1(self.gs, _url, _id, _id2, _pw)
+            self.th1 = Thread1(self.gs, _url1, _url2, _id, _id2, _pw)
             # self.gs.setup(self.url_text, self.id_text, self.id2_text, self.pw_text)
             self.th1.start()
 
-            self.thread1 = Runner2(self, self.gs, _url, _id, _id2, _pw)
+            self.thread1 = Runner2(self, self.gs, _url1, _url2, _id, _id2, _pw)
             self.thread1.start()
 
         except Exception as ex:
@@ -154,7 +154,7 @@ class Runner(QMainWindow, form_class2):
 
 class Runner2(QThread):
 
-    def __init__(self, parent, gs, _url, _id, _id2, _pw):
+    def __init__(self, parent, gs, _url1, _url2, _id, _id2, _pw):
         super().__init__(parent)
         self.parent = parent
         self.gs = gs
@@ -281,7 +281,7 @@ class Runner2(QThread):
         self.logger5.propagate = False
         self.logger5.info("==================================start====================================")
 
-        self._url, self._id, self._id2, self._pw = _url, _id, _id2, _pw
+        self._url1, self._url2, self._id, self._id2, self._pw = _url1, _url2, _id, _id2, _pw
 
     def run(self):
         try:
@@ -577,7 +577,7 @@ class Runner2(QThread):
 
                 table = next(iter({i for a1 in self.table_no for i, y in a1.items() if y in str(ctrldata['ta'])}))
                 di = [ctrldata['lnum'], info, result['date'][-8:], table, ctrldata['sub1001'], step, bp, mon2[0], "", "", "", self.attno]
-                self.parent.disponly = di
+                # self.parent.disponly = di
                 self.dispdata.append(di)
                 # self.datadisplay(di, 0)
 
@@ -731,7 +731,7 @@ class Runner2(QThread):
                             self.logger2.info(pinfo)
                             i = [k for k, v in enumerate(self.dispdata) if v[11] == ctrlData['attno']][0]
                             self.dispdata[i][8] = info
-                            self.dispdata[i][9] = str(ctrlData['attmoney'] / 1000)
+                            self.dispdata[i][9] = str(ctrlData["resultmoney"] / 1000)
                             self.dispdata[i][10] = str(total)
                             self.parent.disponly = self.dispdata[i]
 
@@ -912,16 +912,17 @@ class Runner2(QThread):
 
 
 class Thread1(QThread):
-    def __init__(self, _gs, _url, _id, _id2, _pw):
+    def __init__(self, _gs, _url1, _url2, _id, _id2, _pw):
         super().__init__()
         self.gs = _gs
-        self.url_text = _url
+        self.url1_text = _url1
+        self.url2_text = _url2
         self.id_text = _id
         self.id2_text = _id2
         self.pw_text = _pw
 
     def run(self):
-        self.gs.setup(self.url_text, self.id_text, self.id2_text, self.pw_text)
+        self.gs.setup(self.url1_text, self.url2_text, self.id_text, self.id2_text, self.pw_text)
 
 
 def check_admin():
